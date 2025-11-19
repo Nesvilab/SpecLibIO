@@ -24,25 +24,6 @@ import java.util.*;
 
 public class ParquetToSpecLib {
     
-    @SuppressWarnings("unused")
-    private static class FragmentRow {
-        float precursorMz;
-        float productMz;
-        String annotation;
-        String proteinId;
-        String peptideSequence;
-        String modifiedPeptideSequence;
-        short precursorCharge;
-        float libraryIntensity;
-        float normalizedRetentionTime;
-        String precursorIonMobility;
-        String fragmentType;
-        short fragmentCharge;
-        short fragmentSeriesNumber;
-        String fragmentLossType;
-        short proteotypic;
-    }
-    
     private final String parquetFilePath;
     private final Map<String, String> proteinToGeneMap;
     
@@ -56,53 +37,9 @@ public class ParquetToSpecLib {
     }
     
     public SpectralLibrary convert() throws IOException {
-        List<FragmentRow> rows = readParquetFile();
-        return buildSpectralLibrary(rows);
-    }
-    
-    private List<FragmentRow> readParquetFile() throws IOException {
         try (Connection conn = DriverManager.getConnection("jdbc:duckdb:")) {            
             long rowCount = getRowCount(conn);
-            List<FragmentRow> rows = new ArrayList<>((int) Math.min(rowCount, Integer.MAX_VALUE));
-            
-            String query = "SELECT " +
-                "PrecursorMz, ProductMz, Annotation, ProteinId, " +
-                "PeptideSequence, ModifiedPeptideSequence, PrecursorCharge, " +
-                "LibraryIntensity, NormalizedRetentionTime, PrecursorIonMobility, " +
-                "FragmentType, FragmentCharge, FragmentSeriesNumber, " +
-                "FragmentLossType, Proteotypic " +
-                "FROM read_parquet(?)";
-            
-            try (PreparedStatement stmt = conn.prepareStatement(query,
-                    ResultSet.TYPE_FORWARD_ONLY, 
-                    ResultSet.CONCUR_READ_ONLY)) {
-                stmt.setFetchSize(1 << 10);
-                stmt.setString(1, parquetFilePath);
-                
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        FragmentRow row = new FragmentRow();
-                        row.precursorMz = rs.getFloat(1);
-                        row.productMz = rs.getFloat(2);
-                        row.annotation = rs.getString(3);
-                        row.proteinId = rs.getString(4);
-                        row.peptideSequence = rs.getString(5);
-                        row.modifiedPeptideSequence = rs.getString(6);
-                        row.precursorCharge = rs.getShort(7);
-                        row.libraryIntensity = rs.getFloat(8);
-                        row.normalizedRetentionTime = rs.getFloat(9);
-                        row.precursorIonMobility = rs.getString(10);
-                        row.fragmentType = rs.getString(11);
-                        row.fragmentCharge = rs.getShort(12);
-                        row.fragmentSeriesNumber = rs.getShort(13);
-                        row.fragmentLossType = rs.getString(14);
-                        row.proteotypic = rs.getShort(15);
-                        rows.add(row);
-                    }
-                }
-            }
-            
-            return rows;
+            return buildSpectralLibraryStreaming(conn, rowCount);
         } catch (SQLException e) {
             throw new IOException("Error reading Parquet file with DuckDB: " + e.getMessage(), e);
         }
@@ -121,113 +58,121 @@ public class ParquetToSpecLib {
         return 1L << 15;
     }
 
-    private SpectralLibrary buildSpectralLibrary(List<FragmentRow> rows) {
+    private SpectralLibrary buildSpectralLibraryStreaming(Connection conn, long rowCount) throws SQLException, IOException {
         SpectralLibrary library = new SpectralLibrary();
         
-        int estimatedPrecursors = rows.size() / 16;
-        int estimatedProteins = Math.max(1 << 13, rows.size() / 128);
+        int estimatedPrecursors = (int) (rowCount / 16);
+        int estimatedProteins = Math.max(1 << 13, (int) (rowCount / 128));
         
         Map<String, Integer> proteinIdMap = new LinkedHashMap<>(estimatedProteins);
         Map<String, Integer> geneNameMap = new LinkedHashMap<>(estimatedProteins);
-        Map<String, Integer> precursorMap = new LinkedHashMap<>(estimatedPrecursors);
+        Map<Integer, List<Integer>> proteinToPrecursors = new LinkedHashMap<>(estimatedProteins);
         
         List<Isoform> proteins = new ArrayList<>(estimatedProteins);
         List<ProteinGroup> proteinIds = new ArrayList<>(estimatedProteins);
         List<String> precursors = new ArrayList<>(estimatedPrecursors);
         List<String> names = new ArrayList<>(estimatedProteins);
         List<String> genes = new ArrayList<>(estimatedProteins);
-        
-        Map<String, List<FragmentRow>> precursorFragments = new LinkedHashMap<>(estimatedPrecursors);
-        for (FragmentRow row : rows) {
-            String precursorKey = row.modifiedPeptideSequence + "_" + row.precursorCharge;
-            precursorFragments.computeIfAbsent(precursorKey, k -> new ArrayList<>(16)).add(row);
-        }
-        
         List<LibraryEntry> entries = new ArrayList<>(estimatedPrecursors);
         
         double minRT = Double.MAX_VALUE;
         double maxRT = Double.MIN_VALUE;
         
-        int precursorIndex = 0;
-        for (Map.Entry<String, List<FragmentRow>> entry : precursorFragments.entrySet()) {
-            List<FragmentRow> fragments = entry.getValue();
-            if (fragments.isEmpty()) {
-                continue;
-            }
-            
-            FragmentRow firstRow = fragments.get(0);
-            
-            String proteinId = firstRow.proteinId != null ? firstRow.proteinId : "";
-            String geneName = proteinToGeneMap.getOrDefault(proteinId, proteinId);
-            
-            int proteinIdx;
-            if (!proteinIdMap.containsKey(proteinId)) {
-                proteinIdx = proteins.size();
-                proteinIdMap.put(proteinId, proteinIdx);
-                
-                Isoform protein = new Isoform();
-                protein.setId(proteinId);
-                protein.setName(proteinId);
-                protein.setGene(geneName);
-                protein.setDescription("");
-                protein.setSwissprot(true);
-                proteins.add(protein);
-            } else {
-                proteinIdx = proteinIdMap.get(proteinId);
-            }
-            
-            if (!geneNameMap.containsKey(geneName)) {
-                geneNameMap.put(geneName, genes.size());
-                genes.add(geneName);
-            }
-            
-            if (!proteinIdMap.containsKey(proteinId)) {
-                names.add(proteinId);
-            }
-            
-            precursorMap.put(entry.getKey(), precursorIndex);
-            precursors.add(firstRow.modifiedPeptideSequence);
-            
-            LibraryEntry libEntry = new LibraryEntry();
-            libEntry.setName(firstRow.modifiedPeptideSequence);
-            libEntry.setPidIndex(proteinIdx);
-            libEntry.setProteotypic(firstRow.proteotypic);
-            
-            Peptide peptide = new Peptide();
-            peptide.setIndex(precursorIndex);
-            peptide.setCharge(firstRow.precursorCharge);
-            peptide.setLength(firstRow.peptideSequence != null ? firstRow.peptideSequence.length() : 0);
-            peptide.setMz(firstRow.precursorMz);
-            peptide.setiRT(firstRow.normalizedRetentionTime);
-            float ionMobility = parseIonMobility(firstRow.precursorIonMobility);
-            peptide.setiIM(ionMobility);
-            
-            if (firstRow.normalizedRetentionTime < minRT) {
-                minRT = firstRow.normalizedRetentionTime;
-            }
-            if (firstRow.normalizedRetentionTime > maxRT) {
-                maxRT = firstRow.normalizedRetentionTime;
-            }
-            
-            List<Product> products = new ArrayList<>();
-            for (FragmentRow fragRow : fragments) {
-                Product product = new Product();
-                product.setMz(fragRow.productMz);
-                product.setHeight(fragRow.libraryIntensity);
-                product.setCharge((byte) fragRow.fragmentCharge);
-                product.setType(parseFragmentType(fragRow.fragmentType));
-                product.setIndex((byte) fragRow.fragmentSeriesNumber);
-                product.setLoss(parseLossType(fragRow.fragmentLossType));
-                products.add(product);
-            }
-            peptide.setFragments(products);
-            
-            libEntry.setTarget(peptide);
-            entries.add(libEntry);
-            
-            precursorIndex++;
-        }
+        String query = "SELECT " +
+            "ModifiedPeptideSequence, " +
+            "PrecursorCharge, " +
+            "FIRST(PrecursorMz), " +
+            "FIRST(ProteinId), " +
+            "FIRST(PeptideSequence), " +
+            "FIRST(NormalizedRetentionTime), " +
+            "FIRST(COALESCE(TRY_CAST(PrecursorIonMobility AS FLOAT), 0.0)), " +
+            "FIRST(Proteotypic), " +
+            "list(ProductMz), " +
+            "list(LibraryIntensity), " +
+            "list(FragmentCharge), " +
+            "list(CASE " +
+            "  WHEN lower(FragmentType) = 'b' THEN 1 " +
+            "  WHEN lower(FragmentType) = 'y' THEN 2 " +
+            "  ELSE 0 " +
+            "END), " +
+            "list(FragmentSeriesNumber), " +
+            "list(CASE " +
+            "  WHEN FragmentLossType IS NULL OR FragmentLossType = '' OR lower(FragmentLossType) = 'noloss' THEN 0 " +
+            "  WHEN lower(FragmentLossType) IN ('h2o', '-h2o') THEN 1 " +
+            "  WHEN lower(FragmentLossType) IN ('nh3', '-nh3') THEN 2 " +
+            "  WHEN lower(FragmentLossType) IN ('co', '-co') THEN 3 " +
+            "  WHEN lower(FragmentLossType) IN ('n', '-n') THEN 4 " +
+            "  WHEN lower(FragmentLossType) IN ('other', '-other') THEN 5 " +
+            "  ELSE 0 " +
+            "END) " +
+            "FROM read_parquet(?) " +
+            "GROUP BY ModifiedPeptideSequence, PrecursorCharge " +
+            "ORDER BY ModifiedPeptideSequence, PrecursorCharge";
         
+        try (PreparedStatement stmt = conn.prepareStatement(query,
+                ResultSet.TYPE_FORWARD_ONLY, 
+                ResultSet.CONCUR_READ_ONLY)) {
+            stmt.setFetchSize(1 << 10);
+            stmt.setString(1, parquetFilePath);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                int precursorIndex = 0;
+                
+                while (rs.next()) {
+                    String modifiedPeptideSequence = rs.getString(1);
+                    short precursorCharge = rs.getShort(2);
+                    float precursorMz = rs.getFloat(3);
+                    String proteinId = rs.getString(4);
+                    String peptideSequence = rs.getString(5);
+                    float normalizedRetentionTime = rs.getFloat(6);
+                    float precursorIonMobility = rs.getFloat(7);
+                    short proteotypic = rs.getShort(8);
+                    
+                    Array productMzArray = rs.getArray(9);
+                    Array libraryIntensityArray = rs.getArray(10);
+                    Array fragmentChargeArray = rs.getArray(11);
+                    Array fragmentTypeArray = rs.getArray(12);
+                    Array fragmentSeriesNumberArray = rs.getArray(13);
+                    Array fragmentLossTypeArray = rs.getArray(14);
+                    
+                    Object[] mzs = (Object[]) productMzArray.getArray();
+                    Object[] intensities = (Object[]) libraryIntensityArray.getArray();
+                    Object[] charges = (Object[]) fragmentChargeArray.getArray();
+                    Object[] types = (Object[]) fragmentTypeArray.getArray();
+                    Object[] series = (Object[]) fragmentSeriesNumberArray.getArray();
+                    Object[] losses = (Object[]) fragmentLossTypeArray.getArray();
+                    
+                    int fragmentCount = mzs.length;
+                    List<Product> fragments = new ArrayList<>(fragmentCount);
+                    for (int i = 0; i < fragmentCount; i++) {
+                        byte type = ((Number)types[i]).byteValue();
+                        if (type == 0) throw new IOException("Unsupported fragment type found in parquet file.");
+                        
+                        fragments.add(new Product(
+                            ((Number)mzs[i]).floatValue(),
+                            ((Number)intensities[i]).floatValue(),
+                            ((Number)charges[i]).byteValue(),
+                            type,
+                            ((Number)series[i]).byteValue(),
+                            ((Number)losses[i]).byteValue()
+                        ));
+                    }
+                    
+                    processPrecursor(
+                        fragments,
+                        precursorMz, proteinId, peptideSequence, modifiedPeptideSequence,
+                        precursorCharge, normalizedRetentionTime, precursorIonMobility, proteotypic,
+                        proteinIdMap, geneNameMap, proteinToPrecursors, proteins, names, genes, precursors, entries,
+                        precursorIndex
+                    );
+                    
+                    if (normalizedRetentionTime < minRT) minRT = normalizedRetentionTime;
+                    if (normalizedRetentionTime > maxRT) maxRT = normalizedRetentionTime;
+                    
+                    precursorIndex++;
+                }
+            }
+        }
         for (int i = 0; i < proteins.size(); i++) {
             Isoform protein = proteins.get(i);
             String geneName = protein.getGene();
@@ -235,33 +180,26 @@ public class ParquetToSpecLib {
             protein.setNameIndex(i < names.size() ? i : 0);
             protein.setGeneIndex(geneNameMap.getOrDefault(geneName, 0));
             
-            Set<Integer> precursorIndices = new LinkedHashSet<>();
-            for (int j = 0; j < entries.size(); j++) {
-                if (entries.get(j).getPidIndex() == i) {
-                    precursorIndices.add(j);
-                }
+            List<Integer> precursorList = proteinToPrecursors.get(i);
+            if (precursorList != null) {
+                protein.setPrecursors(new LinkedHashSet<>(precursorList));
             }
-            protein.setPrecursors(precursorIndices);
-        }
-        
-        for (Isoform protein : proteins) {
+            
             ProteinGroup pg = new ProteinGroup();
             pg.setIds(protein.getId());
             pg.setNames(protein.getName());
             pg.setGenes(protein.getGene());
-            
-            List<Integer> precursorIndices = new ArrayList<>(protein.getPrecursors());
-            pg.setPrecursors(precursorIndices);
+            pg.setPrecursors(precursorList != null ? precursorList : new ArrayList<>());
             
             Set<Integer> proteinSet = new LinkedHashSet<>();
-            proteinSet.add(proteinIdMap.get(protein.getId()));
+            proteinSet.add(i);
             pg.setProteins(proteinSet);
             
-            List<Integer> nameIndices = new ArrayList<>();
+            List<Integer> nameIndices = new ArrayList<>(1);
             nameIndices.add(protein.getNameIndex());
             pg.setNameIndices(nameIndices);
             
-            List<Integer> geneIndices = new ArrayList<>();
+            List<Integer> geneIndices = new ArrayList<>(1);
             geneIndices.add(protein.getGeneIndex());
             pg.setGeneIndices(geneIndices);
             
@@ -273,7 +211,7 @@ public class ParquetToSpecLib {
                 names.add(protein.getName());
             }
         }
-        
+
         library.setName("Converted from Parquet");
         library.setFastaNames("");
         library.setProteins(proteins);
@@ -290,66 +228,106 @@ public class ParquetToSpecLib {
         
         return library;
     }
-    
-    public static byte parseFragmentType(String fragmentType) {
-        if (fragmentType == null || fragmentType.isEmpty()) {
-            throw new IllegalArgumentException("Fragment type cannot be null or empty");
+
+    private void processPrecursor(
+            List<Product> fragments,
+            float precursorMz, String proteinId, String peptideSequence, String modifiedPeptideSequence,
+            short precursorCharge, float normalizedRetentionTime, float precursorIonMobility, short proteotypic,
+            Map<String, Integer> proteinIdMap, Map<String, Integer> geneNameMap, Map<Integer, List<Integer>> proteinToPrecursors,
+            List<Isoform> proteins, List<String> names, List<String> genes, List<String> precursors, List<LibraryEntry> entries,
+            int precursorIndex) {
+        
+        if (fragments.isEmpty()) {
+            return;
         }
         
-        switch (fragmentType.toLowerCase()) {
-            case "b":
-                return 1;
-            case "y":
-                return 2;
-            default:
-                throw new IllegalArgumentException(
-                    "Unsupported fragment type: '" + fragmentType + "'. " +
-                    "Only 'b' and 'y' ion types are supported by DIA-NN speclib format.");
-        }
-    }
-    
-    public static byte parseLossType(String lossType) {
-        if (lossType == null || lossType.isEmpty()) {
-            return 0;
+        String safeProteinId = proteinId != null ? proteinId : "";
+        String geneName = proteinToGeneMap.getOrDefault(safeProteinId, safeProteinId);
+        
+        int proteinIdx;
+        if (!proteinIdMap.containsKey(safeProteinId)) {
+            proteinIdx = proteins.size();
+            proteinIdMap.put(safeProteinId, proteinIdx);
+            
+            Isoform protein = new Isoform();
+            protein.setId(safeProteinId);
+            protein.setName(safeProteinId);
+            protein.setGene(geneName);
+            protein.setDescription("");
+            protein.setSwissprot(true);
+            proteins.add(protein);
+            
+            names.add(safeProteinId);
+        } else {
+            proteinIdx = proteinIdMap.get(safeProteinId);
         }
         
-        switch (lossType.toLowerCase()) {
-            case "noloss":
-                return 0;
-            case "h2o":
-            case "-h2o":
-                return 1;
-            case "nh3":
-            case "-nh3":
-                return 2;
-            case "co":
-            case "-co":
-                return 3;
-            case "n":
-            case "-n":
-                return 4;
-            case "other":
-            case "-other":
-                return 5;
-            default:
-                return 0;
+        if (!geneNameMap.containsKey(geneName)) {
+            geneNameMap.put(geneName, genes.size());
+            genes.add(geneName);
         }
-    }
-    
-    public static float parseIonMobility(String ionMobility) {
-        if (ionMobility == null || ionMobility.isEmpty()) {
-            return 0.0f;
-        }
-        try {
-            return Float.parseFloat(ionMobility);
-        } catch (NumberFormatException e) {
-            return 0.0f;
-        }
+        
+        proteinToPrecursors.computeIfAbsent(proteinIdx, k -> new ArrayList<>()).add(precursorIndex);
+        
+        String precursorId = modifiedPeptideSequence + "/" + precursorCharge;
+        precursors.add(precursorId);
+        
+        LibraryEntry libEntry = new LibraryEntry();
+        libEntry.setName(precursorId);
+        libEntry.setPidIndex(proteinIdx);
+        libEntry.setProteotypic(proteotypic);
+        
+        Peptide peptide = new Peptide();
+        peptide.setIndex(precursorIndex);
+        peptide.setCharge(precursorCharge);
+        peptide.setLength(peptideSequence != null ? peptideSequence.length() : 0);
+        peptide.setMz(precursorMz);
+        peptide.setiRT(normalizedRetentionTime);
+        peptide.setiIM(precursorIonMobility);
+        
+        peptide.setFragments(fragments);
+        
+        libEntry.setTarget(peptide);
+        entries.add(libEntry);
     }
     
     public void convertAndWrite(String outputPath) throws IOException {
         SpectralLibrary library = convert();
+        
+        long startWrite = System.nanoTime();
         DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter(library);
         writer.write(outputPath);
+        long endWrite = System.nanoTime();
+        System.out.println("Write time: " + (endWrite - startWrite) / 1_000_000 + " ms");
+    }
+
+    public static void main(String[] args) {
+        String parquetFilePath = "I:\\test_transfer_learning\\dia_1\\fragpipe-predicted-speclib.parquet";
+        String outputFilePath = "I:\\test_transfer_learning\\dia_1\\fragpipe-predicted-speclib.speclib";
+
+        long startTime = System.nanoTime();
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetFilePath);
+        try {
+            long convertStart = System.nanoTime();
+            SpectralLibrary library = converter.convert();
+            long convertEnd = System.nanoTime();
+            System.out.println("Conversion time: " + (convertEnd - convertStart) / 1_000_000 + " ms");
+            
+            long writeStart = System.nanoTime();
+            DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter(library);
+            writer.write(outputFilePath);
+            long writeEnd = System.nanoTime();
+            System.out.println("Final write time: " + (writeEnd - writeStart) / 1_000_000 + " ms");
+            
+            System.out.println("Library stats: " + library.getEntries().size() + " precursors, " + 
+                             library.getProteins().size() + " proteins");
+        } catch (IOException e) {
+            System.err.println("Error converting Parquet file: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
+        }
+        long endTime = System.nanoTime();
+        System.out.println("Conversion complete. Output written to " + outputFilePath);
+        System.out.println("Total execution time: " + (endTime - startTime) / 1_000_000 + " ms");
     }
 }

@@ -22,6 +22,7 @@ import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 
 public class DiaNNSpecLibWriter {
     public static final int LATEST_SUPPORTED_VERSION = -3;
@@ -48,7 +49,7 @@ public class DiaNNSpecLibWriter {
         }
 
         try (FileOutputStream fos = new FileOutputStream(filePath);
-             BufferedOutputStream bos = new BufferedOutputStream(fos, 65536)) {
+             BufferedOutputStream bos = new BufferedOutputStream(fos, 1 << 20)) {
             write(bos, version);
             bos.flush();
         }
@@ -75,32 +76,39 @@ public class DiaNNSpecLibWriter {
     }
 
     private void validateLibrary() {
-        if (library.getEntries().size() != library.getPrecursors().size()) {
+        int entriesSize = library.getEntries().size();
+        int precursorsSize = library.getPrecursors().size();
+        
+        if (entriesSize != precursorsSize) {
             throw new IllegalStateException(
                 String.format("Entries count (%d) must match precursors count (%d)",
-                    library.getEntries().size(), library.getPrecursors().size()));
+                    entriesSize, precursorsSize));
         }
 
-        for (int i = 0; i < library.getEntries().size(); i++) {
-            LibraryEntry entry = library.getEntries().get(i);
+        List<LibraryEntry> entries = library.getEntries();
+        List<String> precursors = library.getPrecursors();
+        
+        for (int i = 0; i < entriesSize; i++) {
+            LibraryEntry entry = entries.get(i);
             if (entry.getTarget() == null) {
                 throw new IllegalStateException(
                     String.format("Entry at index %d has null target peptide", i));
             }
             
-            String precursor = library.getPrecursors().get(i);
-            if (!entry.getName().equals(precursor)) {
+            String entryName = entry.getName();
+            String precursor = precursors.get(i);
+            if (!entryName.equals(precursor)) {
                 throw new IllegalStateException(
                     String.format("Entry name '%s' at index %d does not match precursor '%s'",
-                        entry.getName(), i, precursor));
+                        entryName, i, precursor));
             }
         }
 
-        if (!library.getElutionGroups().isEmpty() && 
-            library.getElutionGroups().size() != library.getEntries().size()) {
+        List<Integer> elutionGroups = library.getElutionGroups();
+        if (!elutionGroups.isEmpty() && elutionGroups.size() != entriesSize) {
             throw new IllegalStateException(
                 String.format("Elution groups count (%d) must match entries count (%d) when present",
-                    library.getElutionGroups().size(), library.getEntries().size()));
+                    elutionGroups.size(), entriesSize));
         }
     }
 

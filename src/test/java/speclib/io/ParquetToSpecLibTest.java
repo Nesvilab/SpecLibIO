@@ -117,7 +117,9 @@ public class ParquetToSpecLibTest {
         
         for (LibraryEntry entry : library.getEntries()) {
             Peptide peptide = entry.getTarget();
-            String precursorKey = library.getPrecursors().get(peptide.getIndex()) + "_" + peptide.getCharge();
+            String entryName = entry.getName();
+            String modifiedSequence = entryName.contains("/") ? entryName.substring(0, entryName.lastIndexOf('/')) : entryName;
+            String precursorKey = modifiedSequence + "_" + peptide.getCharge();
             
             List<ParquetRow> expectedFragments = originalData.get(precursorKey);
             assertNotNull("Should have original data for precursor: " + precursorKey, expectedFragments);
@@ -196,7 +198,8 @@ public class ParquetToSpecLibTest {
         
         for (LibraryEntry entry : library.getEntries()) {
             Peptide peptide = entry.getTarget();
-            String modifiedSequence = library.getPrecursors().get(peptide.getIndex());
+            String entryName = entry.getName();
+            String modifiedSequence = entryName.contains("/") ? entryName.substring(0, entryName.lastIndexOf('/')) : entryName;
             String precursorKey = modifiedSequence + "_" + peptide.getCharge();
             
             List<ParquetRow> originalRows = originalData.get(precursorKey);
@@ -219,7 +222,7 @@ public class ParquetToSpecLibTest {
                         peptide.getiRT(), 
                         0.0001f);
             
-            float expectedIonMobility = ParquetToSpecLib.parseIonMobility(firstRow.precursorIonMobility);
+            float expectedIonMobility = parseIonMobility(firstRow.precursorIonMobility);
             assertEquals("Ion mobility should match", 
                         expectedIonMobility, 
                         peptide.getiIM(), 
@@ -231,7 +234,7 @@ public class ParquetToSpecLibTest {
 
             assertEquals("Modified peptide sequence should match",
                         firstRow.modifiedPeptideSequence,
-                        entry.getName());
+                        modifiedSequence);
             
             Isoform protein = library.getProteins().get(entry.getPidIndex());
             String expectedProteinId = firstRow.proteinId != null ? firstRow.proteinId : "";
@@ -277,12 +280,12 @@ public class ParquetToSpecLibTest {
                             (byte) expectedRow.fragmentSeriesNumber,
                             fragment.getIndex());
                 
-                byte expectedType = ParquetToSpecLib.parseFragmentType(expectedRow.fragmentType);
+                byte expectedType = parseFragmentType(expectedRow.fragmentType);
                 assertEquals("Fragment type should match at index " + i,
                             expectedType,
                             fragment.getType());
                 
-                byte expectedLoss = ParquetToSpecLib.parseLossType(expectedRow.fragmentLossType);
+                byte expectedLoss = parseLossType(expectedRow.fragmentLossType);
                 assertEquals("Fragment loss type should match at index " + i,
                             expectedLoss,
                             fragment.getLoss());
@@ -338,6 +341,62 @@ public class ParquetToSpecLibTest {
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource(resourceName).getFile());
         return file.getAbsolutePath();
+    }
+
+    private static float parseIonMobility(String ionMobility) {
+        if (ionMobility == null || ionMobility.isEmpty()) {
+            return 0.0f;
+        }
+        try {
+            return Float.parseFloat(ionMobility);
+        } catch (NumberFormatException e) {
+            return 0.0f;
+        }
+    }
+
+    private static byte parseFragmentType(String fragmentType) {
+        if (fragmentType == null || fragmentType.isEmpty()) {
+            throw new IllegalArgumentException("Fragment type cannot be null or empty");
+        }
+        
+        char firstChar = fragmentType.charAt(0);
+        if (firstChar == 'b' || firstChar == 'B') {
+            return 1;
+        } else if (firstChar == 'y' || firstChar == 'Y') {
+            return 2;
+        }
+        
+        throw new IllegalArgumentException(
+            "Unsupported fragment type: '" + fragmentType + "'. " +
+            "Only 'b' and 'y' ion types are supported by DIA-NN speclib format.");
+    }
+
+    private static byte parseLossType(String lossType) {
+        if (lossType == null || lossType.isEmpty()) {
+            return 0;
+        }
+        
+        switch (lossType.toLowerCase()) {
+            case "noloss":
+                return 0;
+            case "h2o":
+            case "-h2o":
+                return 1;
+            case "nh3":
+            case "-nh3":
+                return 2;
+            case "co":
+            case "-co":
+                return 3;
+            case "n":
+            case "-n":
+                return 4;
+            case "other":
+            case "-other":
+                return 5;
+            default:
+                return 0;
+        }
     }
 }
 
