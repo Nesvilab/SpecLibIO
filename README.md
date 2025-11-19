@@ -25,6 +25,7 @@ Unit test files (`.speclib` and `.tsv` files) are from the [ProteoWizard](https:
 
 - **Read DIA-NN spectral libraries**: Parse binary `.speclib` files into Java objects
 - **Write DIA-NN spectral libraries**: Generate binary `.speclib` files from Java objects
+- **Parquet to SpecLib conversion**: Convert Parquet-formatted spectral libraries to SpecLib format
 - **Version support**: Supports format versions up to -3 (latest DIA-NN format)
 - **Complete data model**: Includes proteins, peptides, precursors, fragments, and metadata
 - **Stream-based I/O**: Efficient handling of large library files
@@ -66,8 +67,18 @@ library.setGenDecoys(true);
 library.setGenCharges(true);
 // ... populate library with entries
 
-DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter("output.speclib");
-writer.write(library);
+DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter(library);
+writer.write("output.speclib");
+```
+
+### Converting from Parquet
+
+```java
+import speclib.io.ParquetToSpecLib;
+
+// Convert Parquet file to SpecLib
+ParquetToSpecLib converter = new ParquetToSpecLib("input.parquet");
+converter.convertAndWrite("output.speclib");
 ```
 
 ## Testing
@@ -79,10 +90,12 @@ mvn test
 ```
 
 The test suite includes:
-- Reading various DIA-NN library formats
-- Round-trip read/write validation
-- Edge case handling
-- Format version compatibility checks
+- **DiaNNSpecLibReaderTest**: Reading various DIA-NN library formats
+- **DiaNNSpecLibWriterTest**: Round-trip read/write validation, edge cases, format version compatibility
+- **ParquetToSpecLibTest**: Parquet to SpecLib conversion with comprehensive field validation
+  - Tests conversion accuracy for all fields (precursors, fragments, proteins, RT, ion mobility)
+  - Validates fragment types, loss types, charges, and intensities
+  - Verifies round-trip conversion (Parquet → SpecLib → Read back)
 
 ## Binary Format Details
 
