@@ -131,7 +131,7 @@ public class Precursor {
     }
 
     public void write(OutputStream out, int version) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        ByteBuffer buffer = ByteBuffer.allocate(36);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.putInt(index);
@@ -239,8 +239,7 @@ public class Precursor {
     }
 
     private static float readFloatFromBytes(byte[] buffer, int offset) {
-        int bits = readIntFromBytes(buffer, offset);
-        return Float.intBitsToFloat(bits);
+        return Float.intBitsToFloat(readIntFromBytes(buffer, offset));
     }
 }
 

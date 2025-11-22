@@ -118,10 +118,13 @@ public class ProteinGroup {
 
         writeIntVector(out, precursors);
 
-        for (Integer protein : proteins) {
-            buffer.clear();
-            buffer.putInt(protein);
-            out.write(buffer.array());
+        if (!proteins.isEmpty()) {
+            ByteBuffer proteinBuffer = ByteBuffer.allocate(proteins.size() * 4);
+            proteinBuffer.order(ByteOrder.LITTLE_ENDIAN);
+            for (Integer protein : proteins) {
+                proteinBuffer.putInt(protein);
+            }
+            out.write(proteinBuffer.array());
         }
     }
 

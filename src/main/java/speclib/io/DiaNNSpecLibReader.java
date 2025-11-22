@@ -153,6 +153,7 @@ public class DiaNNSpecLibReader {
                     }
                 }
             } catch (IOException e) {
+                throw new IOException("Failed to read optional elution groups data: " + e.getMessage(), e);
             }
         }
 
@@ -178,8 +179,7 @@ public class DiaNNSpecLibReader {
     }
 
     private static double readDoubleFromBytes(byte[] buffer, int offset) {
-        long bits = readLongFromBytes(buffer, offset);
-        return Double.longBitsToDouble(bits);
+        return Double.longBitsToDouble(readLongFromBytes(buffer, offset));
     }
 
     private static String readString(InputStream in) throws IOException {

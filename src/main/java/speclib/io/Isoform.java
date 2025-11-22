@@ -117,7 +117,7 @@ public class Isoform {
     }
 
     public void write(OutputStream out, int version) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(12);
+        ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.putInt(swissprot ? 1 : 0);
@@ -133,10 +133,13 @@ public class Isoform {
         buffer.putInt(geneIndex);
         out.write(buffer.array(), 0, 8);
 
-        for (Integer precursor : precursors) {
-            buffer.clear();
-            buffer.putInt(precursor);
-            out.write(buffer.array(), 0, 4);
+        if (!precursors.isEmpty()) {
+            ByteBuffer precursorBuffer = ByteBuffer.allocate(precursors.size() * 4);
+            precursorBuffer.order(ByteOrder.LITTLE_ENDIAN);
+            for (Integer precursor : precursors) {
+                precursorBuffer.putInt(precursor);
+            }
+            out.write(precursorBuffer.array());
         }
     }
 

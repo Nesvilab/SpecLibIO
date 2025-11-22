@@ -200,7 +200,7 @@ public class SpectralLibrary {
     }
 
     public void write(OutputStream out, int version) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(16);
+        ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.putInt(version);
