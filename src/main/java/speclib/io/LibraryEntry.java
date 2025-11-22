@@ -26,8 +26,8 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 
 public class LibraryEntry {
-    private Peptide target;
-    private Peptide decoy;
+    private Precursor target;
+    private Precursor decoy;
     private int entryFlags = 0;
     private int proteotypic = 0;
     private String name = "";  // precursor id
@@ -45,14 +45,14 @@ public class LibraryEntry {
     private float siteConf = 0.0f;
 
     public LibraryEntry() {
-        this.target = new Peptide();
+        this.target = new Precursor();
     }
 
-    public Peptide getTarget() {
+    public Precursor getTarget() {
         return target;
     }
 
-    public Peptide getDecoy() {
+    public Precursor getDecoy() {
         return decoy;
     }
 
@@ -116,11 +116,11 @@ public class LibraryEntry {
         return siteConf;
     }
 
-    public void setTarget(Peptide target) {
+    public void setTarget(Precursor target) {
         this.target = target;
     }
 
-    public void setDecoy(Peptide decoy) {
+    public void setDecoy(Precursor decoy) {
         this.decoy = decoy;
     }
 
@@ -240,7 +240,7 @@ public class LibraryEntry {
         LibraryEntry entry = new LibraryEntry();
         byte[] buffer = new byte[16];
 
-        entry.target = Peptide.read(in, version);
+        entry.target = Precursor.read(in, version);
 
         int bytesRead = in.read(buffer, 0, 4);
         if (bytesRead != 4) {
@@ -249,7 +249,7 @@ public class LibraryEntry {
         int dc = readIntFromBytes(buffer, 0);
 
         if (dc != 0) {
-            entry.decoy = Peptide.read(in, version);
+            entry.decoy = Precursor.read(in, version);
         }
 
         bytesRead = in.read(buffer, 0, 12);

@@ -26,7 +26,7 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Peptide {
+public class Precursor {
     private int index = 0;
     private int charge = 0;
     private int length = 0;
@@ -39,7 +39,7 @@ public class Peptide {
     private float sIM = 0.0f;
     private List<Product> fragments = new ArrayList<>();
 
-    public Peptide() {
+    public Precursor() {
     }
 
     public int getIndex() {
@@ -177,39 +177,39 @@ public class Peptide {
         }
     }
 
-    public static Peptide read(InputStream in, int version) throws IOException {
-        Peptide peptide = new Peptide();
+    public static Precursor read(InputStream in, int version) throws IOException {
+        Precursor precursor = new Precursor();
         byte[] buffer = new byte[48];
 
         int bytesRead = in.read(buffer, 0, 12);
         if (bytesRead != 12) {
-            throw new IOException("Unexpected end of stream while reading Peptide ints");
+            throw new IOException("Unexpected end of stream while reading Precursor ints");
         }
-        peptide.index = readIntFromBytes(buffer, 0);
-        peptide.charge = readIntFromBytes(buffer, 4);
-        peptide.length = readIntFromBytes(buffer, 8);
+        precursor.index = readIntFromBytes(buffer, 0);
+        precursor.charge = readIntFromBytes(buffer, 4);
+        precursor.length = readIntFromBytes(buffer, 8);
 
         bytesRead = in.read(buffer, 0, 12);
         if (bytesRead != 12) {
-            throw new IOException("Unexpected end of stream while reading Peptide floats");
+            throw new IOException("Unexpected end of stream while reading Precursor floats");
         }
-        peptide.mz = readFloatFromBytes(buffer, 0);
-        peptide.iRT = readFloatFromBytes(buffer, 4);
-        peptide.sRT = readFloatFromBytes(buffer, 8);
+        precursor.mz = readFloatFromBytes(buffer, 0);
+        precursor.iRT = readFloatFromBytes(buffer, 4);
+        precursor.sRT = readFloatFromBytes(buffer, 8);
 
         if (version <= -2) {
             bytesRead = in.read(buffer, 0, 12);
             if (bytesRead != 12) {
-                throw new IOException("Unexpected end of stream while reading Peptide version -2 fields");
+                throw new IOException("Unexpected end of stream while reading Precursor version -2 fields");
             }
-            peptide.libQvalue = readFloatFromBytes(buffer, 0);
-            peptide.iIM = readFloatFromBytes(buffer, 4);
-            peptide.sIM = readFloatFromBytes(buffer, 8);
+            precursor.libQvalue = readFloatFromBytes(buffer, 0);
+            precursor.iIM = readFloatFromBytes(buffer, 4);
+            precursor.sIM = readFloatFromBytes(buffer, 8);
         }
 
-        peptide.fragments = readFragmentsVector(in);
+        precursor.fragments = readFragmentsVector(in);
 
-        return peptide;
+        return precursor;
     }
 
     private static List<Product> readFragmentsVector(InputStream in) throws IOException {

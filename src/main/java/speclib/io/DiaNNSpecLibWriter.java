@@ -92,7 +92,7 @@ public class DiaNNSpecLibWriter {
             LibraryEntry entry = entries.get(i);
             if (entry.getTarget() == null) {
                 throw new IllegalStateException(
-                    String.format("Entry at index %d has null target peptide", i));
+                    String.format("Entry at index %d has null target precursor", i));
             }
             
             String entryName = entry.getName();
@@ -131,7 +131,7 @@ public class DiaNNSpecLibWriter {
         String precursorId = peptideSequence + "/" + charge;
         entry.setName(precursorId);
         
-        Peptide target = new Peptide();
+        Precursor target = new Precursor();
         target.setIndex(0);
         target.setCharge(charge);
         target.setLength(peptideSequence.length());

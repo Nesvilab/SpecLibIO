@@ -277,17 +277,17 @@ public class ParquetToSpecLib {
         libEntry.setPidIndex(proteinIdx);
         libEntry.setProteotypic(proteotypic);
         
-        Peptide peptide = new Peptide();
-        peptide.setIndex(precursorIndex);
-        peptide.setCharge(precursorCharge);
-        peptide.setLength(peptideSequence != null ? peptideSequence.length() : 0);
-        peptide.setMz(precursorMz);
-        peptide.setiRT(normalizedRetentionTime);
-        peptide.setiIM(precursorIonMobility);
+        Precursor precursor = new Precursor();
+        precursor.setIndex(precursorIndex);
+        precursor.setCharge(precursorCharge);
+        precursor.setLength(peptideSequence != null ? peptideSequence.length() : 0);
+        precursor.setMz(precursorMz);
+        precursor.setiRT(normalizedRetentionTime);
+        precursor.setiIM(precursorIonMobility);
         
-        peptide.setFragments(fragments);
+        precursor.setFragments(fragments);
         
-        libEntry.setTarget(peptide);
+        libEntry.setTarget(precursor);
         entries.add(libEntry);
     }
     

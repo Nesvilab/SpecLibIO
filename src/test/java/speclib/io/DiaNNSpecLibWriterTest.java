@@ -100,7 +100,7 @@ public class DiaNNSpecLibWriterTest {
             entry.setName(precursorId);
             entry.setPidIndex(0);
 
-            Peptide target = new Peptide();
+            Precursor target = new Precursor();
             target.setIndex(i);
             target.setCharge(charges[i]);
             target.setLength(peptides[i].length());
@@ -359,18 +359,18 @@ public class DiaNNSpecLibWriterTest {
         Assert.assertEquals("Entry[" + index + "] siteConf mismatch for " + fileName, 
             original.getSiteConf(), reread.getSiteConf(), 0.0001f);
 
-        comparePeptides(original.getTarget(), reread.getTarget(), fileName, index, "target");
+        comparePrecursors(original.getTarget(), reread.getTarget(), fileName, index, "target");
         
         if (original.getDecoy() != null || reread.getDecoy() != null) {
             Assert.assertNotNull("Entry[" + index + "] original decoy should not be null for " + fileName, 
                 original.getDecoy());
             Assert.assertNotNull("Entry[" + index + "] reread decoy should not be null for " + fileName, 
                 reread.getDecoy());
-            comparePeptides(original.getDecoy(), reread.getDecoy(), fileName, index, "decoy");
+            comparePrecursors(original.getDecoy(), reread.getDecoy(), fileName, index, "decoy");
         }
     }
 
-    private void comparePeptides(Peptide original, Peptide reread, String fileName, int entryIndex, String type) {
+    private void comparePrecursors(Precursor original, Precursor reread, String fileName, int entryIndex, String type) {
         Assert.assertEquals("Entry[" + entryIndex + "]." + type + " index mismatch for " + fileName, 
             original.getIndex(), reread.getIndex());
         Assert.assertEquals("Entry[" + entryIndex + "]." + type + " charge mismatch for " + fileName, 
