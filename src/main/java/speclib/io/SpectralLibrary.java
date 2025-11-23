@@ -31,9 +31,6 @@ public class SpectralLibrary {
     private String fastaNames = "";
     private List<Isoform> proteins = new ArrayList<>();
     private List<ProteinGroup> proteinIds = new ArrayList<>();
-    private List<ProteinGroup> proteinGroups = new ArrayList<>();
-    private List<ProteinGroup> geneGroups = new ArrayList<>();
-    private List<Integer> ggIndex = new ArrayList<>();
     private List<String> precursors = new ArrayList<>();
     private List<String> names = new ArrayList<>();
     private List<String> genes = new ArrayList<>();
@@ -65,18 +62,6 @@ public class SpectralLibrary {
 
     public List<ProteinGroup> getProteinIds() {
         return proteinIds;
-    }
-
-    public List<ProteinGroup> getProteinGroups() {
-        return proteinGroups;
-    }
-
-    public List<ProteinGroup> getGeneGroups() {
-        return geneGroups;
-    }
-
-    public List<Integer> getGgIndex() {
-        return ggIndex;
     }
 
     public List<String> getPrecursors() {
@@ -137,18 +122,6 @@ public class SpectralLibrary {
 
     public void setProteinIds(List<ProteinGroup> proteinIds) {
         this.proteinIds = proteinIds;
-    }
-
-    public void setProteinGroups(List<ProteinGroup> proteinGroups) {
-        this.proteinGroups = proteinGroups;
-    }
-
-    public void setGeneGroups(List<ProteinGroup> geneGroups) {
-        this.geneGroups = geneGroups;
-    }
-
-    public void setGgIndex(List<Integer> ggIndex) {
-        this.ggIndex = ggIndex;
     }
 
     public void setPrecursors(List<String> precursors) {
