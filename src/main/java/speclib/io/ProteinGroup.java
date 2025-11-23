@@ -29,7 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ProteinGroup {
+public class ProteinGroup implements Comparable<ProteinGroup> {
     private String ids = "";
     private String names = "";
     private String genes = "";
@@ -43,6 +43,24 @@ public class ProteinGroup {
 
     public ProteinGroup(String ids) {
         this.ids = ids;
+    }
+
+    @Override
+    public int compareTo(ProteinGroup other) {
+        return this.ids.compareTo(other.ids);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        ProteinGroup that = (ProteinGroup) obj;
+        return ids.equals(that.ids);
+    }
+
+    @Override
+    public int hashCode() {
+        return ids.hashCode();
     }
 
     public String getIds() {
