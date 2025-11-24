@@ -118,14 +118,12 @@ public class ParquetToSpecLibTest {
         for (LibraryEntry entry : library.getEntries()) {
             Precursor precursor = entry.getTarget();
             String entryName = entry.getName();
-            String modifiedSequence = entryName.contains("/") ? entryName.substring(0, entryName.lastIndexOf('/')) : entryName;
-            String precursorKey = modifiedSequence + "_" + precursor.getCharge();
-            
-            List<ParquetRow> expectedFragments = originalData.get(precursorKey);
-            assertNotNull("Should have original data for precursor: " + precursorKey, expectedFragments);
+
+            List<ParquetRow> expectedFragments = originalData.get(entryName);
+            assertNotNull("Should have original data for precursor: " + entryName, expectedFragments);
             
             List<Product> actualFragments = precursor.getFragments();
-            assertEquals("Fragment count should match for " + precursorKey,
+            assertEquals("Fragment count should match for " + entryName,
                         expectedFragments.size(),
                         actualFragments.size());
         }
@@ -199,11 +197,9 @@ public class ParquetToSpecLibTest {
         for (LibraryEntry entry : library.getEntries()) {
             Precursor precursor = entry.getTarget();
             String entryName = entry.getName();
-            String modifiedSequence = entryName.contains("/") ? entryName.substring(0, entryName.lastIndexOf('/')) : entryName;
-            String precursorKey = modifiedSequence + "_" + precursor.getCharge();
             
-            List<ParquetRow> originalRows = originalData.get(precursorKey);
-            assertNotNull("Should have original data for precursor: " + precursorKey, originalRows);
+            List<ParquetRow> originalRows = originalData.get(entryName);
+            assertNotNull("Should have original data for precursor: " + entryName, originalRows);
             assertTrue("Should have at least one fragment", !originalRows.isEmpty());
             
             ParquetRow firstRow = originalRows.get(0);
@@ -234,7 +230,7 @@ public class ParquetToSpecLibTest {
 
             assertEquals("Modified peptide sequence should match",
                         firstRow.modifiedPeptideSequence,
-                        modifiedSequence);
+                        entryName.substring(0, entryName.length() - 1));
             
             Isoform protein = library.getProteins().get(entry.getPidIndex());
             String expectedProteinId = firstRow.proteinId != null ? firstRow.proteinId : "";
@@ -327,7 +323,7 @@ public class ParquetToSpecLibTest {
                         row.fragmentLossType = rs.getString("FragmentLossType");
                         row.proteotypic = rs.getShort("Proteotypic");
                         
-                        String precursorKey = row.modifiedPeptideSequence + "_" + row.precursorCharge;
+                        String precursorKey = row.modifiedPeptideSequence + row.precursorCharge;
                         data.computeIfAbsent(precursorKey, k -> new ArrayList<>()).add(row);
                     }
                 }

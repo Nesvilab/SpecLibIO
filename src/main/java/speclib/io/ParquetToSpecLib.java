@@ -238,7 +238,7 @@ public class ParquetToSpecLib {
             
             proteinToPrecursors.computeIfAbsent(proteinIdx, k -> new ArrayList<>()).add(precursorIndex);
             
-            String precursorId = data.modifiedPeptideSequence + "/" + data.precursorCharge;
+            String precursorId = data.modifiedPeptideSequence + data.precursorCharge;
             precursors.add(precursorId);
             
             LibraryEntry libEntry = new LibraryEntry();

@@ -128,7 +128,7 @@ public class DiaNNSpecLibWriter {
         SpectralLibrary library = createMinimalLibrary(libraryName);
         
         LibraryEntry entry = new LibraryEntry();
-        String precursorId = peptideSequence + "/" + charge;
+        String precursorId = peptideSequence + charge;
         entry.setName(precursorId);
         
         Precursor target = new Precursor();

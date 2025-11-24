@@ -96,7 +96,7 @@ public class DiaNNSpecLibWriterTest {
 
         for (int i = 0; i < peptides.length; i++) {
             LibraryEntry entry = new LibraryEntry();
-            String precursorId = peptides[i] + "/" + charges[i];
+            String precursorId = peptides[i] + charges[i];
             entry.setName(precursorId);
             entry.setPidIndex(0);
 
