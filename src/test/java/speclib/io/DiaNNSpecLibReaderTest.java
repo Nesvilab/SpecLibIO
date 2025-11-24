@@ -25,10 +25,12 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -524,5 +526,165 @@ public class DiaNNSpecLibReaderTest {
         ByteArrayInputStream bais = new ByteArrayInputStream(truncated);
         DiaNNSpecLibReader reader = new DiaNNSpecLibReader(bais);
         reader.read();
+    }
+
+    private static void writeIsoform(BufferedWriter writer, Isoform isoform, int idx) throws IOException {
+        writer.write("  [" + idx + "]:\n");
+        writer.write("    swissprot: " + isoform.isSwissprot() + "\n");
+        writer.write("    precursors.size: " + isoform.getPrecursors().size() + "\n");
+        writer.write("    id: " + isoform.getId() + "\n");
+        writer.write("    name: " + isoform.getName() + "\n");
+        writer.write("    gene: " + isoform.getGene() + "\n");
+        writer.write("    nameIndex: " + isoform.getNameIndex() + "\n");
+        writer.write("    geneIndex: " + isoform.getGeneIndex() + "\n");
+        writer.write("    precursors: " + isoform.getPrecursors() + "\n");
+    }
+
+    private static void writeProteinGroup(BufferedWriter writer, ProteinGroup pg, int idx) throws IOException {
+        writer.write("  [" + idx + "]:\n");
+        writer.write("    proteins.size: " + pg.getProteins().size() + "\n");
+        writer.write("    ids: " + pg.getIds() + "\n");
+        writer.write("    names: " + pg.getNames() + "\n");
+        writer.write("    genes: " + pg.getGenes() + "\n");
+        writer.write("    nameIndices: " + pg.getNameIndices() + "\n");
+        writer.write("    geneIndices: " + pg.getGeneIndices() + "\n");
+        writer.write("    precursors: " + pg.getPrecursors() + "\n");
+        writer.write("    proteins: " + pg.getProteins() + "\n");
+    }
+
+    private static void writeProduct(BufferedWriter writer, Product product, int idx) throws IOException {
+        writer.write("        [" + idx + "]: mz=" + product.getMz() + 
+                     ", height=" + product.getHeight() + 
+                     ", charge=" + product.getCharge() + 
+                     ", type=" + product.getType() + 
+                     ", index=" + product.getIndex() + 
+                     ", loss=" + product.getLoss() + "\n");
+    }
+
+    private static void writePrecursor(BufferedWriter writer, Precursor precursor, String label) throws IOException {
+        writer.write("    " + label + ":\n");
+        writer.write("      index: " + precursor.getIndex() + "\n");
+        writer.write("      charge: " + precursor.getCharge() + "\n");
+        writer.write("      length: " + precursor.getLength() + "\n");
+        writer.write("      mz: " + precursor.getMz() + "\n");
+        writer.write("      iRT: " + precursor.getiRT() + "\n");
+        writer.write("      sRT: " + precursor.getsRT() + "\n");
+        writer.write("      libQvalue: " + precursor.getLibQvalue() + "\n");
+        writer.write("      iIM: " + precursor.getiIM() + "\n");
+        writer.write("      sIM: " + precursor.getsIM() + "\n");
+        writer.write("      fragments: " + precursor.getFragments().size() + " entries\n");
+        for (int i = 0; i < precursor.getFragments().size(); i++) {
+            writeProduct(writer, precursor.getFragments().get(i), i);
+        }
+    }
+
+    private static void writeLibraryEntry(BufferedWriter writer, LibraryEntry entry, int idx) throws IOException {
+        writer.write("  [" + idx + "]:\n");
+        writePrecursor(writer, entry.getTarget(), "target");
+        writer.write("    hasDecoy: " + (entry.getDecoy() != null) + "\n");
+        if (entry.getDecoy() != null) {
+            writePrecursor(writer, entry.getDecoy(), "decoy");
+        }
+        writer.write("    entryFlags: " + entry.getEntryFlags() + "\n");
+        writer.write("    proteotypic: " + entry.getProteotypic() + "\n");
+        writer.write("    pidIndex: " + entry.getPidIndex() + "\n");
+        writer.write("    name: " + entry.getName() + "\n");
+        writer.write("    pgQvalue: " + entry.getPgQvalue() + "\n");
+        writer.write("    ptmQvalue: " + entry.getPtmQvalue() + "\n");
+        writer.write("    siteConf: " + entry.getSiteConf() + "\n");
+    }
+
+    @Test
+    public void testWriteLibraryContentToFile() throws IOException {
+        File speclibFile = new File(getClass().getClassLoader().getResource("1.8.1/report-lib.predicted.speclib").getFile());
+        
+        Assume.assumeTrue("Test file exists", speclibFile.exists());
+
+        DiaNNSpecLibReader reader = new DiaNNSpecLibReader(speclibFile);
+        SpectralLibrary library = reader.read();
+
+        File outputFile = new File(speclibFile.getParent(), "library_content.txt");
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+            writer.write("=== Spectral Library Content ===\n\n");
+
+            writer.write("genDecoys: " + library.isGenDecoys() + "\n");
+            writer.write("genCharges: " + library.isGenCharges() + "\n");
+            writer.write("inferProteotypicity: " + library.isInferProteotypicity() + "\n\n");
+
+            writer.write("name: " + library.getName() + "\n");
+            writer.write("fastaNames: " + library.getFastaNames() + "\n\n");
+
+            writer.write("proteins (Isoforms): " + library.getProteins().size() + " entries\n");
+            for (int i = 0; i < library.getProteins().size(); i++) {
+                writeIsoform(writer, library.getProteins().get(i), i);
+            }
+            writer.write("\n");
+
+            writer.write("proteinIds (ProteinGroups): " + library.getProteinIds().size() + " entries\n");
+            for (int i = 0; i < library.getProteinIds().size(); i++) {
+                writeProteinGroup(writer, library.getProteinIds().get(i), i);
+            }
+            writer.write("\n");
+
+            writer.write("precursors: " + library.getPrecursors().size() + " entries\n");
+            for (int i = 0; i < library.getPrecursors().size(); i++) {
+                writer.write("  [" + i + "]: " + library.getPrecursors().get(i) + "\n");
+            }
+            writer.write("\n");
+
+            writer.write("names: " + library.getNames().size() + " entries\n");
+            for (int i = 0; i < library.getNames().size(); i++) {
+                writer.write("  [" + i + "]: " + library.getNames().get(i) + "\n");
+            }
+            writer.write("\n");
+
+            writer.write("genes: " + library.getGenes().size() + " entries\n");
+            for (int i = 0; i < library.getGenes().size(); i++) {
+                writer.write("  [" + i + "]: " + library.getGenes().get(i) + "\n");
+            }
+            writer.write("\n");
+
+            writer.write("iRTMin: " + library.getiRTMin() + "\n");
+            writer.write("iRTMax: " + library.getiRTMax() + "\n\n");
+
+            writer.write("entries (LibraryEntries): " + library.getEntries().size() + " entries\n");
+            for (int i = 0; i < library.getEntries().size(); i++) {
+                writeLibraryEntry(writer, library.getEntries().get(i), i);
+            }
+            writer.write("\n");
+
+            if (!library.getElutionGroups().isEmpty()) {
+                writer.write("elutionGroups: " + library.getElutionGroups().size() + " entries\n");
+                for (int i = 0; i < library.getElutionGroups().size(); i++) {
+                    writer.write("  [" + i + "]: " + library.getElutionGroups().get(i) + "\n");
+                }
+            }
+
+            System.out.println("Library content written to " + outputFile.getAbsolutePath());
+        }
+
+        Assert.assertTrue("Output file should be created", outputFile.exists());
+        Assert.assertTrue("Output file should not be empty", outputFile.length() > 0);
+    }
+
+    @Test
+    public void testUnsupportedVersions() throws IOException {
+        String[] versions = {"1.9", "2.3.0"};
+        
+        for (String version : versions) {
+            File speclibFile = new File(getClass().getClassLoader().getResource(version + "/report-lib.predicted.speclib").getFile());
+            
+            Assume.assumeTrue("Test file exists: " + version, speclibFile.exists());
+
+            DiaNNSpecLibReader reader = new DiaNNSpecLibReader(speclibFile);
+            
+            try {
+                reader.read();
+            } catch (IOException e) {
+                Assert.assertTrue("Exception message should mention version for " + version, 
+                    e.getMessage().contains("version"));
+            }
+        }
     }
 }
