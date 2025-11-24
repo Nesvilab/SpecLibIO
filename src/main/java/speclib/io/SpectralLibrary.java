@@ -176,12 +176,17 @@ public class SpectralLibrary {
         ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        buffer.putInt(version);
-        out.write(buffer.array(), 0, 4);
+        if (version >= 0) {
+            buffer.putInt(genDecoys ? 1 : 0);
+            out.write(buffer.array(), 0, 4);
+        } else {
+            buffer.putInt(version);
+            out.write(buffer.array(), 0, 4);
 
-        buffer.clear();
-        buffer.putInt(genDecoys ? 1 : 0);
-        out.write(buffer.array(), 0, 4);
+            buffer.clear();
+            buffer.putInt(genDecoys ? 1 : 0);
+            out.write(buffer.array(), 0, 4);
+        }
 
         buffer.clear();
         buffer.putInt(genCharges ? 1 : 0);
