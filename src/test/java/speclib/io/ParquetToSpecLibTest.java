@@ -78,7 +78,7 @@ public class ParquetToSpecLibTest {
             }
         }
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap, -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         verifyLibraryAgainstParquet(library, originalData, proteinToGeneMap);
@@ -97,7 +97,7 @@ public class ParquetToSpecLibTest {
         
         Map<String, List<ParquetRow>> originalData = readParquetData(parquetPath);
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, Collections.emptyMap(), -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         Set<String> expectedPrecursors = originalData.keySet();
@@ -112,7 +112,7 @@ public class ParquetToSpecLibTest {
         
         Map<String, List<ParquetRow>> originalData = readParquetData(parquetPath);
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, Collections.emptyMap(), -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         for (LibraryEntry entry : library.getEntries()) {
@@ -148,7 +148,7 @@ public class ParquetToSpecLibTest {
             }
         }
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, Collections.emptyMap(), -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         assertEquals("Min RT should match", minRT, library.getiRTMin(), 0.0001);
@@ -172,7 +172,7 @@ public class ParquetToSpecLibTest {
             }
         }
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap, -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         assertEquals("Number of proteins should match",

@@ -26,6 +26,11 @@ public class ParquetToSpecLib {
     
     private final String parquetFilePath;
     private final Map<String, String> proteinToGeneMap;
+    private final int version;
+    private final boolean genDecoys;
+    private final boolean genCharges;
+    private final boolean inferProteotypicity;
+    
     private static class TempPrecursorData {
         List<Product> fragments;
         float precursorMz;
@@ -38,13 +43,24 @@ public class ParquetToSpecLib {
         short proteotypic;
     }
 
-    public ParquetToSpecLib(String parquetFilePath) {
-        this(parquetFilePath, Collections.emptyMap());
-    }
-
-    public ParquetToSpecLib(String parquetFilePath, Map<String, String> proteinToGeneMap) {
+    public ParquetToSpecLib(String parquetFilePath, Map<String, String> proteinToGeneMap, int version, boolean genDecoys, boolean genCharges, boolean inferProteotypicity) {
         this.parquetFilePath = parquetFilePath;
         this.proteinToGeneMap = proteinToGeneMap != null ? proteinToGeneMap : Collections.emptyMap();
+        this.version = version;
+        this.genDecoys = genDecoys;
+        this.genCharges = genCharges;
+        this.inferProteotypicity = inferProteotypicity;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+    
+    private static boolean isSwissprot(String proteinId) {
+        if (proteinId == null || proteinId.isEmpty()) {
+            return false;
+        }
+        return proteinId.startsWith("sp|");
     }
     
     public SpectralLibrary convert() throws IOException {
@@ -212,7 +228,7 @@ public class ParquetToSpecLib {
             protein.setDescription("");
             protein.setNameIndex(proteinIdMap.get(proteinId));
             protein.setGeneIndex(geneNameMap.get(geneName));
-            protein.setSwissprot(true);
+            protein.setSwissprot(isSwissprot(proteinId));
             proteins.add(protein);
         }
         
@@ -283,9 +299,9 @@ public class ParquetToSpecLib {
         library.setiRTMin(minRT);
         library.setiRTMax(maxRT);
         library.setEntries(entries);
-        library.setGenDecoys(false);
-        library.setGenCharges(false);
-        library.setInferProteotypicity(false);
+        library.setGenDecoys(genDecoys);
+        library.setGenCharges(genCharges);
+        library.setInferProteotypicity(inferProteotypicity);
         
         return library;
     }
@@ -295,7 +311,7 @@ public class ParquetToSpecLib {
         
         long startWrite = System.nanoTime();
         DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter(library);
-        writer.write(outputPath);
+        writer.write(outputPath, version);
         long endWrite = System.nanoTime();
         System.out.println("Write time: " + (endWrite - startWrite) / 1_000_000 + " ms");
     }
@@ -305,7 +321,8 @@ public class ParquetToSpecLib {
         String outputFilePath = "I:\\test_transfer_learning\\dia_1\\fragpipe-predicted-speclib.speclib";
 
         long startTime = System.nanoTime();
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetFilePath);
+
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetFilePath, Collections.emptyMap(), -1, true, true, true);
         try {
             long convertStart = System.nanoTime();
             SpectralLibrary library = converter.convert();
@@ -314,7 +331,7 @@ public class ParquetToSpecLib {
             
             long writeStart = System.nanoTime();
             DiaNNSpecLibWriter writer = new DiaNNSpecLibWriter(library);
-            writer.write(outputFilePath);
+            writer.write(outputFilePath, converter.getVersion());
             long writeEnd = System.nanoTime();
             System.out.println("Final write time: " + (writeEnd - writeStart) / 1_000_000 + " ms");
             

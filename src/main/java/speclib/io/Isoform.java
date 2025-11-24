@@ -35,7 +35,7 @@ public class Isoform {
     private Set<Integer> precursors = new LinkedHashSet<>();
     private int nameIndex = 0;
     private int geneIndex = 0;
-    private boolean swissprot = true;
+    private boolean swissprot = false;
 
     public Isoform() {
     }
@@ -164,7 +164,7 @@ public class Isoform {
         }
         int sp = readIntFromBytes(buffer, 0);
         int size = readIntFromBytes(buffer, 4);
-        isoform.swissprot = (sp != 0);
+        isoform.swissprot = (sp == 1);
 
         isoform.id = readString(in);
         isoform.name = readString(in);
