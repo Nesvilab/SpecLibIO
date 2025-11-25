@@ -224,6 +224,14 @@ public class ParquetToSpecLib {
             geneIdxMap.put(sortedGenes.get(i), i);
         }
 
+        Map<String, Set<Integer>> isoformToPrecursors = new HashMap<>();
+        for (int precursorIndex = 0; precursorIndex < tempData.size(); ++precursorIndex) {
+            TempPrecursorData data = tempData.get(precursorIndex);
+            for (String isoform : data.proteinGroup.split(";")) {
+                isoformToPrecursors.computeIfAbsent(isoform, k -> new LinkedHashSet<>()).add(precursorIndex);
+            }
+        }
+
         List<Isoform> isoforms = new ArrayList<>(sortedIsoforms.size());
         for (String s : sortedIsoforms) {
             String gene = isoformToGeneMap.getOrDefault(s, s);
@@ -235,6 +243,7 @@ public class ParquetToSpecLib {
             isoform.setNameIndex(0);
             isoform.setGeneIndex(geneIdxMap.get(gene));
             isoform.setSwissprot(isSwissprot(s));
+            isoform.setPrecursors(isoformToPrecursors.getOrDefault(s, new LinkedHashSet<>()));
             isoforms.add(isoform);
         }
         
