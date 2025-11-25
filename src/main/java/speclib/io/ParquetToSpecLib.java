@@ -90,6 +90,7 @@ public class ParquetToSpecLib {
         
         int estimatedPrecursors = (int) (rowCount / 16);
         
+        Set<String> uniqueIsoforms = new TreeSet<>();
         Set<String> uniqueProteinGroups = new TreeSet<>();
         Set<String> uniqueGenes = new TreeSet<>();
         
@@ -191,9 +192,12 @@ public class ParquetToSpecLib {
                         data.proteotypic = proteotypic;
                         
                         tempData.add(data);
+
+                        for (String isoform : data.proteinGroup.split(";")) {
+                            uniqueIsoforms.add(isoform);
+                            uniqueGenes.add(isoformToGeneMap.getOrDefault(isoform, isoform));
+                        }
                         uniqueProteinGroups.add(data.proteinGroup);
-                        String geneName = isoformToGeneMap.getOrDefault(data.proteinGroup, data.proteinGroup);
-                        uniqueGenes.add(geneName);
                     }
                     
                     if (normalizedRetentionTime < minRT) minRT = normalizedRetentionTime;
@@ -202,6 +206,12 @@ public class ParquetToSpecLib {
             }
         }
         
+        List<String> sortedIsoforms = new ArrayList<>(uniqueIsoforms);
+        Map<String, Integer> isoformIdxMap = new HashMap<>(sortedIsoforms.size());
+        for (int i = 0; i < sortedIsoforms.size(); ++i) {
+            isoformIdxMap.put(sortedIsoforms.get(i), i);
+        }
+
         List<String> sortedProteinGroups = new ArrayList<>(uniqueProteinGroups);
         Map<String, Integer> proteinGroupIdxMap = new HashMap<>(sortedProteinGroups.size());
         for (int i = 0; i < sortedProteinGroups.size(); ++i) {
@@ -213,13 +223,9 @@ public class ParquetToSpecLib {
         for (int i = 0; i < sortedGenes.size(); ++i) {
             geneIdxMap.put(sortedGenes.get(i), i);
         }
-        
-        List<String> sortedNames = new ArrayList<>(sortedProteinGroups);
-        
-        List<Isoform> proteins = new ArrayList<>(sortedProteinGroups.size());
-        Map<Integer, List<Integer>> proteinGroupToPrecursors = new HashMap<>(sortedProteinGroups.size());
-        
-        for (String s : sortedProteinGroups) {
+
+        List<Isoform> isoforms = new ArrayList<>(sortedIsoforms.size());
+        for (String s : sortedIsoforms) {
             String gene = isoformToGeneMap.getOrDefault(s, s);
             Isoform isoform = new Isoform();
             isoform.setId(s);
@@ -229,9 +235,10 @@ public class ParquetToSpecLib {
             isoform.setNameIndex(0);
             isoform.setGeneIndex(geneIdxMap.get(gene));
             isoform.setSwissprot(isSwissprot(s));
-            proteins.add(isoform);
+            isoforms.add(isoform);
         }
         
+        Map<Integer, List<Integer>> proteinGroupToPrecursors = new HashMap<>(sortedProteinGroups.size());
         for (int precursorIndex = 0; precursorIndex < tempData.size(); ++precursorIndex) {
             TempPrecursorData data = tempData.get(precursorIndex);
             int proteinGroupIdx = proteinGroupIdxMap.get(data.proteinGroup);
@@ -243,7 +250,7 @@ public class ParquetToSpecLib {
             
             LibraryEntry libEntry = new LibraryEntry();
             libEntry.setName(precursorId);
-            libEntry.setPidIndex(proteinGroupIdx);
+            libEntry.setPgIndex(proteinGroupIdx);
             libEntry.setProteotypic(data.proteotypic);
             
             Precursor precursor = new Precursor();
@@ -263,23 +270,24 @@ public class ParquetToSpecLib {
         for (int i = 0; i < sortedProteinGroups.size(); ++i) {
             String proteinGroupStr = sortedProteinGroups.get(i);
             List<Integer> precursorList = proteinGroupToPrecursors.get(i);
+
+            List<Integer> isoformIndices = new ArrayList<>(1);
+            List<String> genes = new ArrayList<>(1);
+            List<Integer> geneIndices = new ArrayList<>(1);
+            for (String isoform : proteinGroupStr.split(";")) {
+                isoformIndices.add(isoformIdxMap.get(isoform));
+                String gene = isoformToGeneMap.getOrDefault(isoform, isoform);
+                genes.add(gene);
+                geneIndices.add(geneIdxMap.get(gene));
+            }
             
             ProteinGroup proteinGroup = new ProteinGroup();
             proteinGroup.setIds(proteinGroupStr);
             proteinGroup.setNames("");
-            proteinGroup.setGenes(gene);
+            proteinGroup.setGenes(String.join(";", genes));
             proteinGroup.setPrecursors(precursorList != null ? precursorList : new ArrayList<>());
-            
-            Set<Integer> proteinSet = new LinkedHashSet<>();
-            proteinSet.add(i);
-            proteinGroup.setProteins(proteinSet);
-            
-            List<Integer> nameIndices = new ArrayList<>(1);
-            nameIndices.add(0);
-            proteinGroup.setNameIndices(nameIndices);
-            
-            List<Integer> geneIndices = new ArrayList<>(1);
-            geneIndices.add(geneIdxMap.get(gene));
+            proteinGroup.setIsoforms(isoformIndices);
+            proteinGroup.setNameIndices(new ArrayList<>(0));
             proteinGroup.setGeneIndices(geneIndices);
             
             proteinGroups.add(proteinGroup);
@@ -287,10 +295,10 @@ public class ParquetToSpecLib {
 
         library.setName("Converted from Parquet");
         library.setFastaNames("");
-        library.setIsoforms(proteins);
+        library.setIsoforms(isoforms);
         library.setProteinGroups(proteinGroups);
         library.setPrecursors(precursors);
-        library.setNames(sortedNames);
+        library.setNames(new ArrayList<>(0));
         library.setGenes(sortedGenes);
         library.setiRTMin(minRT);
         library.setiRTMax(maxRT);

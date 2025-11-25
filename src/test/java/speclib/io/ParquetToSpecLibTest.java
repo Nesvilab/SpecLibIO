@@ -73,8 +73,9 @@ public class ParquetToSpecLibTest {
         Map<String, String> isoformToGeneMap = new HashMap<>();
         for (List<ParquetRow> rows : originalData.values()) {
             if (!rows.isEmpty() && rows.get(0).proteinId != null) {
-                String proteinName = rows.get(0).proteinId;
-                isoformToGeneMap.put(proteinName, "GENE_" + proteinName);
+                for (String s : rows.get(0).proteinId.split(";")) {
+                    isoformToGeneMap.put(s, s);
+                }
             }
         }
         
@@ -164,9 +165,10 @@ public class ParquetToSpecLibTest {
         
         for (List<ParquetRow> rows : originalData.values()) {
             if (!rows.isEmpty() && rows.get(0).proteinId != null) {
-                String proteinName = rows.get(0).proteinId;
-                expectedProteins.add(proteinName);
-                isoformToGeneMap.put(proteinName, "GENE_" + proteinName);
+                for (String s : rows.get(0).proteinId.split(";")) {
+                    expectedProteins.add(s);
+                    isoformToGeneMap.put(s, s);
+                }
             }
         }
         
@@ -232,19 +234,18 @@ public class ParquetToSpecLibTest {
                         firstRow.modifiedPeptideSequence,
                         entryName.substring(0, entryName.length() - 1));
             
-            Isoform isoform = library.getIsoforms().get(entry.getPidIndex());
+            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPgIndex());
+
             String expectedProteinId = firstRow.proteinId != null ? firstRow.proteinId : "";
             assertEquals("Protein ID should match",
                         expectedProteinId,
-                        isoform.getId());
+                        proteinGroup.getIds());
 
-            String expectedGene = isoformToGeneMap != null ? 
-                isoformToGeneMap.getOrDefault(expectedProteinId, expectedProteinId) : 
-                expectedProteinId;
-            assertEquals("Gene name should match",
-                        expectedGene,
-                        isoform.getGene());
-            
+            for (String s : proteinGroup.getIds().split(";")) {
+                String expectedGene = isoformToGeneMap.get(s);
+                assertEquals("Gene name should match", expectedGene, s);
+            }
+
             assertEquals("Proteotypic flag should match",
                         firstRow.proteotypic,
                         entry.getProteotypic());

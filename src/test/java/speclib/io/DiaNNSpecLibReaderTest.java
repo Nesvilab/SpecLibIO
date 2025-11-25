@@ -206,8 +206,8 @@ public class DiaNNSpecLibReaderTest {
             return;
         }
         
-        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinGroups().size()) {
-            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPidIndex());
+        if (entry.getPgIndex() >= 0 && entry.getPgIndex() < library.getProteinGroups().size()) {
+            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPgIndex());
             if (proteinGroup.getIsoforms().isEmpty()) {
                 return;
             }
@@ -242,8 +242,8 @@ public class DiaNNSpecLibReaderTest {
             return;
         }
         
-        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinGroups().size()) {
-            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPidIndex());
+        if (entry.getPgIndex() >= 0 && entry.getPgIndex() < library.getProteinGroups().size()) {
+            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPgIndex());
             if (proteinGroup.getIsoforms().isEmpty()) {
                 return;
             }
@@ -587,7 +587,7 @@ public class DiaNNSpecLibReaderTest {
         }
         writer.write("    entryFlags: " + entry.getEntryFlags() + "\n");
         writer.write("    proteotypic: " + entry.getProteotypic() + "\n");
-        writer.write("    pidIndex: " + entry.getPidIndex() + "\n");
+        writer.write("    pgIndex: " + entry.getPgIndex() + "\n");
         writer.write("    name: " + entry.getName() + "\n");
         writer.write("    pgQvalue: " + entry.getPgQvalue() + "\n");
         writer.write("    ptmQvalue: " + entry.getPtmQvalue() + "\n");

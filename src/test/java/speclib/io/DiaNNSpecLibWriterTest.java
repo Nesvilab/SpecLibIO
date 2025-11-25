@@ -98,7 +98,7 @@ public class DiaNNSpecLibWriterTest {
             LibraryEntry entry = new LibraryEntry();
             String precursorId = peptides[i] + charges[i];
             entry.setName(precursorId);
-            entry.setPidIndex(0);
+            entry.setPgIndex(0);
 
             Precursor target = new Precursor();
             target.setIndex(i);
@@ -349,7 +349,7 @@ public class DiaNNSpecLibWriterTest {
         Assert.assertEquals("Entry[" + index + "] name mismatch for " + fileName, 
             original.getName(), reread.getName());
         Assert.assertEquals("Entry[" + index + "] pidIndex mismatch for " + fileName, 
-            original.getPidIndex(), reread.getPidIndex());
+            original.getPgIndex(), reread.getPgIndex());
         Assert.assertEquals("Entry[" + index + "] proteotypic mismatch for " + fileName, 
             original.getProteotypic(), reread.getProteotypic());
         Assert.assertEquals("Entry[" + index + "] pgQvalue mismatch for " + fileName, 

@@ -31,7 +31,6 @@ public class LibraryEntry {
     private int entryFlags = 0;
     private int proteotypic = 0;
     private String name = "";  // precursor id
-    private int pidIndex = 0;
     private int pgIndex = 0;
     private int egId = 0;
     private int bestRun = -1;
@@ -66,10 +65,6 @@ public class LibraryEntry {
 
     public String getName() {
         return name;
-    }
-
-    public int getPidIndex() {
-        return pidIndex;
     }
 
     public int getPgIndex() {
@@ -134,10 +129,6 @@ public class LibraryEntry {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public void setPidIndex(int pidIndex) {
-        this.pidIndex = pidIndex;
     }
 
     public void setPgIndex(int pgIndex) {
@@ -205,7 +196,7 @@ public class LibraryEntry {
         out.write(buffer.array());
 
         buffer.clear();
-        buffer.putInt(pidIndex);
+        buffer.putInt(pgIndex);
         out.write(buffer.array());
 
         writeString(out, name);
@@ -258,7 +249,7 @@ public class LibraryEntry {
         }
         entry.entryFlags = readIntFromBytes(buffer, 0);
         entry.proteotypic = readIntFromBytes(buffer, 4);
-        entry.pidIndex = readIntFromBytes(buffer, 8);
+        entry.pgIndex = readIntFromBytes(buffer, 8);
 
         entry.name = readString(in);
 
