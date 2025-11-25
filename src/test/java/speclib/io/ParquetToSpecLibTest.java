@@ -70,23 +70,23 @@ public class ParquetToSpecLibTest {
         
         Map<String, List<ParquetRow>> originalData = readParquetData(parquetPath);
         
-        Map<String, String> proteinToGeneMap = new HashMap<>();
+        Map<String, String> isoformToGeneMap = new HashMap<>();
         for (List<ParquetRow> rows : originalData.values()) {
             if (!rows.isEmpty() && rows.get(0).proteinId != null) {
                 String proteinName = rows.get(0).proteinId;
-                proteinToGeneMap.put(proteinName, "GENE_" + proteinName);
+                isoformToGeneMap.put(proteinName, "GENE_" + proteinName);
             }
         }
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap, -1, true, true, true);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, isoformToGeneMap, -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
-        verifyLibraryAgainstParquet(library, originalData, proteinToGeneMap);
+        verifyLibraryAgainstParquet(library, originalData, isoformToGeneMap);
         
-        for (Isoform protein : library.getProteins()) {
-            String expectedGene = "GENE_" + protein.getId();
-            if (proteinToGeneMap.containsKey(protein.getId())) {
-                assertEquals("Gene name should be preserved in round trip", expectedGene, protein.getGene());
+        for (Isoform isoform : library.getIsoforms()) {
+            String expectedGene = isoform.getId();
+            if (isoformToGeneMap.containsKey(isoform.getId())) {
+                assertEquals("Gene name should be preserved in round trip", expectedGene, isoform.getGene());
             }
         }
     }
@@ -160,37 +160,37 @@ public class ParquetToSpecLibTest {
         Map<String, List<ParquetRow>> originalData = readParquetData(parquetPath);
         
         Set<String> expectedProteins = new HashSet<>();
-        Map<String, String> proteinToGeneMap = new HashMap<>();
+        Map<String, String> isoformToGeneMap = new HashMap<>();
         
         for (List<ParquetRow> rows : originalData.values()) {
             if (!rows.isEmpty() && rows.get(0).proteinId != null) {
                 String proteinName = rows.get(0).proteinId;
                 expectedProteins.add(proteinName);
-                proteinToGeneMap.put(proteinName, "GENE_" + proteinName);
+                isoformToGeneMap.put(proteinName, "GENE_" + proteinName);
             }
         }
         
-        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, proteinToGeneMap, -1, true, true, true);
+        ParquetToSpecLib converter = new ParquetToSpecLib(parquetPath, isoformToGeneMap, -1, true, true, true);
         SpectralLibrary library = converter.convert();
         
         assertEquals("Number of proteins should match",
                     expectedProteins.size(),
-                    library.getProteins().size());
+                    library.getIsoforms().size());
                     
-        for (Isoform protein : library.getProteins()) {
-            if (proteinToGeneMap.containsKey(protein.getId())) {
+        for (Isoform isoform : library.getIsoforms()) {
+            if (isoformToGeneMap.containsKey(isoform.getId())) {
                 assertEquals("Gene name should match map", 
-                           proteinToGeneMap.get(protein.getId()), 
-                           protein.getGene());
+                           isoformToGeneMap.get(isoform.getId()), 
+                           isoform.getGene());
             } else {
                 assertEquals("Gene name should default to protein ID", 
-                           protein.getId(), 
-                           protein.getGene());
+                           isoform.getId(), 
+                           isoform.getGene());
             }
         }
     }
 
-    private void verifyLibraryAgainstParquet(SpectralLibrary library, Map<String, List<ParquetRow>> originalData, Map<String, String> proteinToGeneMap) {
+    private void verifyLibraryAgainstParquet(SpectralLibrary library, Map<String, List<ParquetRow>> originalData, Map<String, String> isoformToGeneMap) {
         assertNotNull("Library should not be null", library);
         assertNotNull("Library entries should not be null", library.getEntries());
         
@@ -232,18 +232,18 @@ public class ParquetToSpecLibTest {
                         firstRow.modifiedPeptideSequence,
                         entryName.substring(0, entryName.length() - 1));
             
-            Isoform protein = library.getProteins().get(entry.getPidIndex());
+            Isoform isoform = library.getIsoforms().get(entry.getPidIndex());
             String expectedProteinId = firstRow.proteinId != null ? firstRow.proteinId : "";
             assertEquals("Protein ID should match",
                         expectedProteinId,
-                        protein.getId());
+                        isoform.getId());
 
-            String expectedGene = proteinToGeneMap != null ? 
-                proteinToGeneMap.getOrDefault(expectedProteinId, expectedProteinId) : 
+            String expectedGene = isoformToGeneMap != null ? 
+                isoformToGeneMap.getOrDefault(expectedProteinId, expectedProteinId) : 
                 expectedProteinId;
             assertEquals("Gene name should match",
                         expectedGene,
-                        protein.getGene());
+                        isoform.getGene());
             
             assertEquals("Proteotypic flag should match",
                         firstRow.proteotypic,

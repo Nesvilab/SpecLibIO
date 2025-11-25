@@ -106,8 +106,8 @@ public class DiaNNSpecLibReader {
         library.setName(readString(inputStream));
         library.setFastaNames(readString(inputStream));
 
-        library.setProteins(readIsoformArray(inputStream, version));
-        library.setProteinIds(readProteinGroupArray(inputStream, version));
+        library.setIsoforms(readIsoformArray(inputStream, version));
+        library.setProteinGroups(readProteinGroupArray(inputStream, version));
 
         library.setPrecursors(readStringArray(inputStream));
         library.setNames(readStringArray(inputStream));

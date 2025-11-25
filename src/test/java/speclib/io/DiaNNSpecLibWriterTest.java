@@ -71,20 +71,20 @@ public class DiaNNSpecLibWriterTest {
         library.setiRTMin(5.0);
         library.setiRTMax(95.0);
 
-        Isoform protein = new Isoform("P12345", "TEST_PROTEIN", "TEST_GENE", "Test protein description", true);
-        protein.setNameIndex(0);
-        protein.setGeneIndex(0);
-        protein.getPrecursors().add(0);
-        protein.getPrecursors().add(1);
-        library.getProteins().add(protein);
+        Isoform isoform = new Isoform("P12345", "TEST_PROTEIN", "TEST_GENE", "Test protein description", true);
+        isoform.setNameIndex(0);
+        isoform.setGeneIndex(0);
+        isoform.getPrecursors().add(0);
+        isoform.getPrecursors().add(1);
+        library.getIsoforms().add(isoform);
 
-        ProteinGroup pg = new ProteinGroup("P12345");
-        pg.setNames("TEST_PROTEIN");
-        pg.setGenes("TEST_GENE");
-        pg.getPrecursors().add(0);
-        pg.getPrecursors().add(1);
-        pg.getProteins().add(0);
-        library.getProteinIds().add(pg);
+        ProteinGroup proteinGroup = new ProteinGroup("P12345");
+        proteinGroup.setNames("TEST_PROTEIN");
+        proteinGroup.setGenes("TEST_GENE");
+        proteinGroup.getPrecursors().add(0);
+        proteinGroup.getPrecursors().add(1);
+        proteinGroup.getIsoforms().add(0);
+        library.getProteinGroups().add(proteinGroup);
 
         library.getNames().add("TEST_PROTEIN");
         library.getGenes().add("TEST_GENE");
@@ -267,16 +267,16 @@ public class DiaNNSpecLibWriterTest {
                 original.getGenes().get(i), reread.getGenes().get(i));
         }
 
-        Assert.assertEquals("Proteins size mismatch for " + fileName, 
-            original.getProteins().size(), reread.getProteins().size());
-        for (int i = 0; i < original.getProteins().size(); i++) {
-            compareIsoforms(original.getProteins().get(i), reread.getProteins().get(i), fileName, i);
+        Assert.assertEquals("Isoforms size mismatch for " + fileName, 
+            original.getIsoforms().size(), reread.getIsoforms().size());
+        for (int i = 0; i < original.getIsoforms().size(); i++) {
+            compareIsoforms(original.getIsoforms().get(i), reread.getIsoforms().get(i), fileName, i);
         }
 
-        Assert.assertEquals("ProteinIds size mismatch for " + fileName, 
-            original.getProteinIds().size(), reread.getProteinIds().size());
-        for (int i = 0; i < original.getProteinIds().size(); i++) {
-            compareProteinGroups(original.getProteinIds().get(i), reread.getProteinIds().get(i), fileName, i);
+        Assert.assertEquals("ProteinGroups size mismatch for " + fileName, 
+            original.getProteinGroups().size(), reread.getProteinGroups().size());
+        for (int i = 0; i < original.getProteinGroups().size(); i++) {
+            compareProteinGroups(original.getProteinGroups().get(i), reread.getProteinGroups().get(i), fileName, i);
         }
 
         Assert.assertEquals("Entries size mismatch for " + fileName, 
@@ -327,10 +327,10 @@ public class DiaNNSpecLibWriterTest {
             Assert.assertEquals("ProteinGroup[" + index + "] precursor[" + i + "] mismatch for " + fileName, 
                 original.getPrecursors().get(i), reread.getPrecursors().get(i));
         }
-        Assert.assertEquals("ProteinGroup[" + index + "] proteins size mismatch for " + fileName, 
-            original.getProteins().size(), reread.getProteins().size());
-        Assert.assertEquals("ProteinGroup[" + index + "] proteins mismatch for " + fileName, 
-            original.getProteins(), reread.getProteins());
+        Assert.assertEquals("ProteinGroup[" + index + "] isoforms size mismatch for " + fileName, 
+            original.getIsoforms().size(), reread.getIsoforms().size());
+        Assert.assertEquals("ProteinGroup[" + index + "] isoforms mismatch for " + fileName, 
+            original.getIsoforms(), reread.getIsoforms());
         Assert.assertEquals("ProteinGroup[" + index + "] nameIndices size mismatch for " + fileName, 
             original.getNameIndices().size(), reread.getNameIndices().size());
         for (int i = 0; i < original.getNameIndices().size(); i++) {

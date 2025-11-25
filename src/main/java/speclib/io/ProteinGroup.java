@@ -25,16 +25,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 public class ProteinGroup implements Comparable<ProteinGroup> {
     private String ids = "";
     private String names = "";
     private String genes = "";
     private List<Integer> precursors = new ArrayList<>();
-    private Set<Integer> proteins = new LinkedHashSet<>();
+    private List<Integer> isoforms = new ArrayList<>();
     private List<Integer> nameIndices = new ArrayList<>();
     private List<Integer> geneIndices = new ArrayList<>();
 
@@ -79,8 +77,8 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
         return precursors;
     }
 
-    public Set<Integer> getProteins() {
-        return proteins;
+    public List<Integer> getIsoforms() {
+        return isoforms;
     }
 
     public List<Integer> getNameIndices() {
@@ -107,8 +105,8 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
         this.precursors = precursors;
     }
 
-    public void setProteins(Set<Integer> proteins) {
-        this.proteins = proteins;
+    public void setIsoforms(List<Integer> isoforms) {
+        this.isoforms = isoforms;
     }
 
     public void setNameIndices(List<Integer> nameIndices) {
@@ -123,7 +121,7 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
         ByteBuffer buffer = ByteBuffer.allocate(4);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        buffer.putInt(proteins.size());
+        buffer.putInt(isoforms.size());
         out.write(buffer.array());
 
         writeString(out, ids);
@@ -136,13 +134,13 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
 
         writeIntVector(out, precursors);
 
-        if (!proteins.isEmpty()) {
-            ByteBuffer proteinBuffer = ByteBuffer.allocate(proteins.size() * 4);
-            proteinBuffer.order(ByteOrder.LITTLE_ENDIAN);
-            for (Integer protein : proteins) {
-                proteinBuffer.putInt(protein);
+        if (!isoforms.isEmpty()) {
+            ByteBuffer isoformBuffer = ByteBuffer.allocate(isoforms.size() * 4);
+            isoformBuffer.order(ByteOrder.LITTLE_ENDIAN);
+            for (Integer isoform : isoforms) {
+                isoformBuffer.putInt(isoform);
             }
-            out.write(proteinBuffer.array());
+            out.write(isoformBuffer.array());
         }
     }
 
@@ -174,7 +172,7 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
     }
 
     public static ProteinGroup read(InputStream in, int version) throws IOException {
-        ProteinGroup pg = new ProteinGroup();
+        ProteinGroup proteinGroup = new ProteinGroup();
         byte[] buffer = new byte[4];
 
         int bytesRead = in.read(buffer, 0, 4);
@@ -183,15 +181,15 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
         }
         int sizeP = readIntFromBytes(buffer, 0);
 
-        pg.ids = readString(in);
-        pg.names = readString(in);
-        pg.genes = readString(in);
+        proteinGroup.ids = readString(in);
+        proteinGroup.names = readString(in);
+        proteinGroup.genes = readString(in);
 
-        pg.nameIndices = readIntVector(in);
-        pg.geneIndices = readIntVector(in);
-        pg.precursors = readIntVector(in);
+        proteinGroup.nameIndices = readIntVector(in);
+        proteinGroup.geneIndices = readIntVector(in);
+        proteinGroup.precursors = readIntVector(in);
 
-        pg.proteins.clear();
+        proteinGroup.isoforms.clear();
         for (int i = 0; i < sizeP; i++) {
             bytesRead = in.read(buffer, 0, 4);
             if (bytesRead != 4) {
@@ -199,11 +197,11 @@ public class ProteinGroup implements Comparable<ProteinGroup> {
             }
             int p = readIntFromBytes(buffer, 0);
             if (p >= 0) {
-                pg.proteins.add(p);
+                proteinGroup.isoforms.add(p);
             }
         }
 
-        return pg;
+        return proteinGroup;
     }
 
     private static int readIntFromBytes(byte[] buffer, int offset) {

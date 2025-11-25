@@ -202,13 +202,13 @@ public class DiaNNSpecLibReaderTest {
     }
     
     private void validateProteinIds(LibraryEntry entry, TsvEntry tsv, SpectralLibrary library) {
-        if (library.getProteins().isEmpty() || library.getProteinIds().isEmpty()) {
+        if (library.getIsoforms().isEmpty() || library.getProteinGroups().isEmpty()) {
             return;
         }
         
-        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinIds().size()) {
-            ProteinGroup proteinGroup = library.getProteinIds().get(entry.getPidIndex());
-            if (proteinGroup.getProteins().isEmpty()) {
+        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinGroups().size()) {
+            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPidIndex());
+            if (proteinGroup.getIsoforms().isEmpty()) {
                 return;
             }
             
@@ -222,11 +222,11 @@ public class DiaNNSpecLibReaderTest {
                 tsvProteinId = tsvProteinId.trim();
                 if (tsvProteinId.isEmpty()) continue;
                 
-                for (int proteinIndex : proteinGroup.getProteins()) {
-                    if (proteinIndex >= 0 && proteinIndex < library.getProteins().size()) {
-                        Isoform protein = library.getProteins().get(proteinIndex);
-                        String proteinName = protein.getName();
-                        if (proteinName.equals(tsvProteinId) || proteinName.contains(tsvProteinId) || tsvProteinId.contains(proteinName) || proteinName.endsWith(tsvProteinId) || tsvProteinId.endsWith(proteinName)) {
+                for (int proteinIndex : proteinGroup.getIsoforms()) {
+                    if (proteinIndex >= 0 && proteinIndex < library.getIsoforms().size()) {
+                        Isoform isoform = library.getIsoforms().get(proteinIndex);
+                        String isoformName = isoform.getName();
+                        if (isoformName.equals(tsvProteinId)) {
                             foundMatch = true;
                             break;
                         }
@@ -238,13 +238,13 @@ public class DiaNNSpecLibReaderTest {
     }
     
     private void validateProteinNames(LibraryEntry entry, TsvEntry tsv, SpectralLibrary library) {
-        if (library.getProteins().isEmpty() || library.getProteinIds().isEmpty()) {
+        if (library.getIsoforms().isEmpty() || library.getProteinGroups().isEmpty()) {
             return;
         }
         
-        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinIds().size()) {
-            ProteinGroup proteinGroup = library.getProteinIds().get(entry.getPidIndex());
-            if (proteinGroup.getProteins().isEmpty()) {
+        if (entry.getPidIndex() >= 0 && entry.getPidIndex() < library.getProteinGroups().size()) {
+            ProteinGroup proteinGroup = library.getProteinGroups().get(entry.getPidIndex());
+            if (proteinGroup.getIsoforms().isEmpty()) {
                 return;
             }
             
@@ -258,11 +258,11 @@ public class DiaNNSpecLibReaderTest {
                 tsvProteinName = tsvProteinName.trim();
                 if (tsvProteinName.isEmpty()) continue;
                 
-                for (int proteinIndex : proteinGroup.getProteins()) {
-                    if (proteinIndex >= 0 && proteinIndex < library.getProteins().size()) {
-                        Isoform protein = library.getProteins().get(proteinIndex);
-                        String proteinName = protein.getName();
-                        if (proteinName.equals(tsvProteinName) || proteinName.contains(tsvProteinName) || tsvProteinName.contains(proteinName) || proteinName.endsWith(tsvProteinName) || tsvProteinName.endsWith(proteinName)) {
+                for (int proteinIndex : proteinGroup.getIsoforms()) {
+                    if (proteinIndex >= 0 && proteinIndex < library.getIsoforms().size()) {
+                        Isoform isoform = library.getIsoforms().get(proteinIndex);
+                        String isoformName = isoform.getName();
+                        if (isoformName.equals(tsvProteinName)) {
                             foundMatch = true;
                             break;
                         }
@@ -289,7 +289,7 @@ public class DiaNNSpecLibReaderTest {
             if (tsvGene.isEmpty()) continue;
             
             for (String libGene : library.getGenes()) {
-                if (libGene.equals(tsvGene) || libGene.contains(tsvGene) || tsvGene.contains(libGene) || libGene.equalsIgnoreCase(tsvGene)) {
+                if (libGene.equals(tsvGene)) {
                     foundMatch = true;
                     break;
                 }
@@ -542,14 +542,14 @@ public class DiaNNSpecLibReaderTest {
 
     private static void writeProteinGroup(BufferedWriter writer, ProteinGroup pg, int idx) throws IOException {
         writer.write("  [" + idx + "]:\n");
-        writer.write("    proteins.size: " + pg.getProteins().size() + "\n");
+        writer.write("    proteins.size: " + pg.getIsoforms().size() + "\n");
         writer.write("    ids: " + pg.getIds() + "\n");
         writer.write("    names: " + pg.getNames() + "\n");
         writer.write("    genes: " + pg.getGenes() + "\n");
         writer.write("    nameIndices: " + pg.getNameIndices() + "\n");
         writer.write("    geneIndices: " + pg.getGeneIndices() + "\n");
         writer.write("    precursors: " + pg.getPrecursors() + "\n");
-        writer.write("    proteins: " + pg.getProteins() + "\n");
+        writer.write("    proteins: " + pg.getIsoforms() + "\n");
     }
 
     private static void writeProduct(BufferedWriter writer, Product product, int idx) throws IOException {
@@ -615,15 +615,15 @@ public class DiaNNSpecLibReaderTest {
             writer.write("name: " + library.getName() + "\n");
             writer.write("fastaNames: " + library.getFastaNames() + "\n\n");
 
-            writer.write("proteins (Isoforms): " + library.getProteins().size() + " entries\n");
-            for (int i = 0; i < library.getProteins().size(); i++) {
-                writeIsoform(writer, library.getProteins().get(i), i);
+            writer.write("proteins (Isoforms): " + library.getIsoforms().size() + " entries\n");
+            for (int i = 0; i < library.getIsoforms().size(); i++) {
+                writeIsoform(writer, library.getIsoforms().get(i), i);
             }
             writer.write("\n");
 
-            writer.write("proteinIds (ProteinGroups): " + library.getProteinIds().size() + " entries\n");
-            for (int i = 0; i < library.getProteinIds().size(); i++) {
-                writeProteinGroup(writer, library.getProteinIds().get(i), i);
+            writer.write("protein groups (ProteinGroups): " + library.getProteinGroups().size() + " entries\n");
+            for (int i = 0; i < library.getProteinGroups().size(); i++) {
+                writeProteinGroup(writer, library.getProteinGroups().get(i), i);
             }
             writer.write("\n");
 

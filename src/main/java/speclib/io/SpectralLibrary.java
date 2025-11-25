@@ -29,8 +29,8 @@ import java.util.List;
 public class SpectralLibrary {
     private String name = "";
     private String fastaNames = "";
-    private List<Isoform> proteins = new ArrayList<>();
-    private List<ProteinGroup> proteinIds = new ArrayList<>();
+    private List<Isoform> isoforms = new ArrayList<>();
+    private List<ProteinGroup> proteinGroups = new ArrayList<>();
     private List<String> precursors = new ArrayList<>();
     private List<String> names = new ArrayList<>();
     private List<String> genes = new ArrayList<>();
@@ -56,12 +56,12 @@ public class SpectralLibrary {
         return fastaNames;
     }
 
-    public List<Isoform> getProteins() {
-        return proteins;
+    public List<Isoform> getIsoforms() {
+        return isoforms;
     }
 
-    public List<ProteinGroup> getProteinIds() {
-        return proteinIds;
+    public List<ProteinGroup> getProteinGroups() {
+        return proteinGroups;
     }
 
     public List<String> getPrecursors() {
@@ -116,12 +116,12 @@ public class SpectralLibrary {
         this.fastaNames = fastaNames;
     }
 
-    public void setProteins(List<Isoform> proteins) {
-        this.proteins = proteins;
+    public void setIsoforms(List<Isoform> isoforms) {
+        this.isoforms = isoforms;
     }
 
-    public void setProteinIds(List<ProteinGroup> proteinIds) {
-        this.proteinIds = proteinIds;
+    public void setProteinGroups(List<ProteinGroup> proteinGroups) {
+        this.proteinGroups = proteinGroups;
     }
 
     public void setPrecursors(List<String> precursors) {
@@ -199,8 +199,8 @@ public class SpectralLibrary {
         writeString(out, name);
         writeString(out, fastaNames);
 
-        writeArray(out, proteins, version);
-        writeArray(out, proteinIds, version);
+        writeArray(out, isoforms, version);
+        writeArray(out, proteinGroups, version);
 
         writeStrings(out, precursors);
         writeStrings(out, names);
